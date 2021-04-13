@@ -140,8 +140,25 @@ namespace Polizia_Ludovica
                 // aprire manualmente connessione conn:open
                 // fai update, fare un cmd e tornare l'identity
 
-                // aggiornamento del database con le modifiche apportate sul dataset
-                da.Update(tabellaAgenti);
+                try
+                {
+                    // aggiornamento del database con le modifiche apportate sul dataset
+                    da.Update(tabellaAgenti);
+                }
+                catch (SqlException ex) // lancio un'eccezione generica...
+                {
+                    // però indago per capire che se è un'eccezione di quelle da me definite
+                    if (ex.Message.Contains("IX_CodiceFiscale"))
+                        //throw new AgenteDuplicatoException("Non possono esistere agenti con codice fiscale uguale.", codiceFiscale);
+                        //throw new AgenteDuplicatoException($"Inserimento non riuscito: è già presente un agente con codice fiscale {codiceFiscale}.", codiceFiscale);
+                                // passiamo al costruttore anche ex per sapere che SqlException è la InnerException di AgenteDuplicato
+                        throw new AgenteDuplicatoException($"Inserimento non riuscito: è già presente un agente con codice fiscale {codiceFiscale}.", ex, codiceFiscale);
+                    else if (ex.Message.Contains("CK_MaggioreEta"))
+                        //throw new AgenteMinorenneException("L'agente deve essere maggiorenne.", dataNascita);
+                        throw new AgenteMinorenneException("Non possono esistere agenti minorenni", ex);
+                    else
+                        throw; // gestisco caso in cui si tratta di un'eccezione imprevista (non definita da me)
+                }
             }
 
             return new AgentePolizia(nome, cognome, codiceFiscale, dataNascita, anniServizio);
